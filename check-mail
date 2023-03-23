@@ -1,0 +1,76 @@
+function duplicateProduct(client, copy) {
+
+const dupFolder = '', // the folder id which will hold the copies;
+
+copies = {
+  // here we put our copies with keys of the products;
+};
+
+
+let cop = DriveApp.getFileById(copies[copy]).makeCopy(DriveApp.getFolderById(dupFolder));
+cop.setName(`${copy}-${client}`);
+cop.addEditor(client);
+let copUrl = cop.getUrl(),
+fmsg = `The message to send. `
+;
+sendMail(client,'Home Training App. Purchase',fmsg);
+addToClientsSheet(client,`${copy}`)
+
+}
+
+function sendMail(recepient,subj,msg){
+  GmailApp.sendEmail(recepient,subj,msg);
+}
+
+function checkPurchase(){
+  // First get all messages from salla.com
+  // if the message is unread
+  // if message.subject is a purchase
+  // then get the body and find the email of the buyer
+  // after that mark as read
+  let unreadMsgsArray = [];
+  let msgs = GmailApp.search('product Purchased"');
+  msgs.forEach(m => {
+    let unreadMsgs = {}
+    if(m.isUnread()){
+      let bod = m.getMessages()[0].getBody();
+      let indexOfNewLine = bod.indexOf('\n')
+      // the following if else is to check if the buyer buys up to 4 copies of the program.
+      if(indexOfNewLine == 20){
+        unreadMsgs[bod.substring(0,19).trim()] = bod.substring(21);
+        m.markRead();
+      }else if(indexOfNewLine == 39){
+        unreadMsgs[bod.substring(0,19).trim()] = bod.substring(39);
+        unreadMsgs[bod.substring(19,38).trim()] = bod.substring(39);
+        m.markRead();
+      }else if(indexOfNewLine == 58){
+        unreadMsgs[bod.substring(0,19).trim()] = bod.substring(59);
+        unreadMsgs[bod.substring(19,38).trim()] = bod.substring(59);
+        unreadMsgs[bod.substring(38,57).trim()] = bod.substring(59);
+        m.markRead();
+      }else if(indexOfNewLine == 77){
+        unreadMsgs[bod.substring(0,19).trim()] = bod.substring(78);
+        unreadMsgs[bod.substring(19,38).trim()] = bod.substring(78);
+        unreadMsgs[bod.substring(38,57).trim()] = bod.substring(78);
+        unreadMsgs[bod.substring(57,76).trim()] = bod.substring(78);
+        m.markRead();
+      }
+    }
+    unreadMsgsArray.push(unreadMsgs);
+    });
+    
+    
+    unreadMsgsArray.forEach(um=>{
+      for(let k in um){
+        duplicateProduct(um[k],k);
+    }
+    }) 
+}
+// Finally add the buyer email, product purchased, and time purchased to the clients sheet.
+function addToClientsSheet(client,copy){
+  const clientsDataSheetId = 'ID here';
+  const tSheet = SpreadsheetApp.openById(clientsDataSheetId);
+  let row = [new Date(),client,copy];
+  tSheet.appendRow(row);
+
+}
