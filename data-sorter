@@ -1,0 +1,97 @@
+function getData(tSheet){
+  // let cols = tSheet.getLastColumn();
+  // let rows = tSheet.getLastRow();
+  // let allData = tSheet.getRange(1, 1, cols, rows).getValues();
+  let allData = tSheet.getDataRange().getValues();
+  let headers = allData[0];
+  let data = allData.slice(1,allData.length-1);
+  return {'headers':headers,'data':data}
+}
+
+function getSheetsNames(wb) {
+  var sheetNames = [];
+  var sheets = wb.getSheets();
+  for (var i = 0; i < sheets.length; i++) sheetNames.push(sheets[i].getName());
+  return sheetNames
+}
+
+function findColumn(colName){
+  let col = colName.toLowerCase();
+  let columns = sheetData.headers.map(h=>{ return h.toLowerCase()});
+  let res = columns.indexOf(col);
+  return res
+}
+
+function getActiveCell(wb){
+  let cell = wb.getActiveSheet().getActiveRange();
+  let row = cell.getLastRow();
+  let col = cell.getLastColumn();
+}
+
+// Get data from a sheet and divide it into separate sheets based on column value which is ColumnName;
+
+
+/*
+// In case of active Sheet
+let targetSheet = spreadSheetApp.getActiveSpreadsheet().getActiveSheet();
+ */
+
+let app = SpreadsheetApp;
+let settingSheet = app.openByUrl(url);
+
+let targetSheet = app.getActiveSpreadsheet().getActiveSheet();
+// This url is for the results Sheet;
+let finalSheetUrl = settingSheet.getRange('B3').getValue(); // Will be generated or type a url here;
+let finalSheet = app.openByUrl(finalSheetUrl);
+let columnName = settingSheet.getRange('B4').getValue(); // the column we will sort based on its data.
+
+let sheetData = getData(targetSheet); // getData() in utils.gs;
+
+// let sheetData = getData(targetSheet);
+function runSorter(){
+  let colIndex = findColumn(columnName); // findColumn() in utils.gs
+  if (colIndex === -1){
+    // app.getUi().alert('Column: Correct Industry is not found!');
+    SpreadsheetApp.getActiveSpreadsheet().toast(`Column: ${columnName} was not found!`);
+  }else{
+    processSorter(colIndex);
+  }
+}
+
+
+function processSorter(idx){ //idx for columnIndex
+  let data = sheetData.data;
+  let headers = sheetData.headers;
+  let targetSheets = getSheetsNames(finalSheet).map(t=>{return t.toLowerCase()}); // getSheetsNames() from utils.gs;
+  let inUSeSheets = []
+  let dataObj = {};
+  data.forEach(d=>{
+    console.log(d);
+    let ind = d[idx].toLowerCase();
+    let i = targetSheets.indexOf(ind);
+    if(i===-1){
+      // console.log(ind)
+      finalSheet.insertSheet(ind).appendRow(headers);
+      targetSheets.push(ind);
+      dataObj[ind] = [d];
+      inUSeSheets.push(ind);
+    }else{
+      if(dataObj[ind]){
+        dataObj[ind].push(d);
+      }else{
+        dataObj[ind] = [d];
+        inUSeSheets.push(ind);
+      }
+    }
+  })
+  inUSeSheets.forEach(ts=>{
+
+    let sheet = finalSheet.getSheetByName(ts);
+    let lRow = sheet.getLastRow();
+    let lCols = sheet.getLastColumn();
+    let long = dataObj[ts].length;
+    // console.log(ts);
+    sheet.getRange(lRow+1,1,long,lCols).setValues(dataObj[ts]);
+  })
+  // console.log(inUSeSheets.length);
+}
